@@ -1,3 +1,5 @@
+![Time Traveler：系统时区随处走，聊天时间由你选](Assets/README-Hero.jpg)
+
 # Time Traveler
 
 **系统时区属于电脑，聊天时间由你选择。**
