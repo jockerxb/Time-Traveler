@@ -23,6 +23,7 @@ Time Traveler 是一款开源的 macOS 时区启动器。即使系统切换到�
 | macOS | macOS 13 Ventura 或更高版本 |
 | Mac 芯片 | Apple Silicon 与 Intel |
 | 聊天软件 | 飞书、微信、WhatsApp、Telegram |
+| 界面语言 | 中文、English |
 
 ### 从源码构建
 

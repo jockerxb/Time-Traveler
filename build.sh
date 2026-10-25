@@ -17,7 +17,7 @@ for CPU in "${ARCHS[@]}"; do
     /usr/bin/xcrun swiftc -O -parse-as-library \
         -module-cache-path "$BUILD/module-cache-$CPU" \
         -target "$CPU-apple-macosx13.0" \
-        Sources/TimezoneCatalog.swift Sources/AppModel.swift Sources/main.swift \
+        Sources/Localization.swift Sources/TimezoneCatalog.swift Sources/AppModel.swift Sources/main.swift \
         -o "$BUILD/TimeTraveler-$CPU" \
         -framework SwiftUI -framework AppKit
 done

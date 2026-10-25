@@ -26,6 +26,7 @@ struct Destination: Hashable, Identifiable {
     var zone: TimeZone { TimeZone(identifier: rawValue)! }
     var city: String { ZoneCatalog.labels[rawValue]?.city ?? rawValue }
     var englishCity: String { ZoneCatalog.labels[rawValue]?.english ?? rawValue }
+    func displayCity(in language: AppLanguage) -> String { language == .chinese ? city : englishCity }
     private var ruleData: Data? { try? Data(contentsOf: URL(fileURLWithPath: "/usr/share/zoneinfo/" + rawValue)) }
     var catalogID: String { ZoneCatalog.representatives[rawValue] ?? rawValue }
 
@@ -36,9 +37,9 @@ struct Destination: Hashable, Identifiable {
         return String(format: "UTC%@%02d:%02d", minutes >= 0 ? "+" : "−", abs(minutes) / 60, abs(minutes) % 60)
     }
 
-    func time(at date: Date) -> String {
+    func time(at date: Date, language: AppLanguage = .chinese) -> String {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.locale = Locale(identifier: language.localeIdentifier)
         formatter.timeZone = zone
         formatter.dateFormat = "EEE HH:mm"
         return formatter.string(from: date)
@@ -67,9 +68,9 @@ enum ZoneCatalog {
             let city = destination.rawValue == "Asia/Shanghai"
                 ? "北京 / 上海"
                 : (isUTC ? "协调世界时" : (chineseName.isEmpty || chineseName == "未知城市" ? fallback : chineseName))
-            let englishCity = isUTC
-                ? "Coordinated Universal Time"
-                : (englishName.isEmpty || englishName == "Unknown City" ? fallback : englishName)
+            let englishCity = destination.rawValue == "Asia/Shanghai"
+                ? "Beijing / Shanghai"
+                : (isUTC ? "Coordinated Universal Time" : (englishName.isEmpty || englishName == "Unknown City" ? fallback : englishName))
             return (destination.rawValue, Label(city: city, english: englishCity))
         })
     }()
@@ -114,7 +115,7 @@ enum ZoneCatalog {
         return (representative.rawValue, names + aliases)
     })
 
-    static func search(_ query: String, at date: Date) -> [Destination] {
+    static func search(_ query: String, at date: Date, language: AppLanguage = .chinese) -> [Destination] {
         var textQuery = query.replacingOccurrences(of: "−", with: "-")
         var offsetSeconds: Int?
         let pattern = #"(?i)\butc\s*([+-]?)\s*([0-9]{1,2})(?::([0-9]{2})|\.([0-9]{1,2}))?(?![0-9:.])"#
@@ -144,7 +145,7 @@ enum ZoneCatalog {
             let left = $0.zone.secondsFromGMT(for: date)
             let right = $1.zone.secondsFromGMT(for: date)
             if left != right { return left < right }
-            let order = $0.city.compare($1.city, locale: Locale(identifier: "zh_CN"))
+            let order = $0.displayCity(in: language).compare($1.displayCity(in: language), locale: Locale(identifier: language.localeIdentifier))
             return order == .orderedSame ? $0.rawValue < $1.rawValue : order == .orderedAscending
         }
     }
@@ -162,8 +163,8 @@ enum ZoneCatalog {
         }
     }
 
-    static func groups(_ query: String, at date: Date) -> [OffsetGroup] {
-        let grouped = Dictionary(grouping: search(query, at: date)) { $0.zone.secondsFromGMT(for: date) }
+    static func groups(_ query: String, at date: Date, language: AppLanguage = .chinese) -> [OffsetGroup] {
+        let grouped = Dictionary(grouping: search(query, at: date, language: language)) { $0.zone.secondsFromGMT(for: date) }
         return grouped.keys.sorted().map { seconds in
             let zones = grouped[seconds]!
             return OffsetGroup(seconds: seconds, title: zones[0].offset(at: date), zones: zones)

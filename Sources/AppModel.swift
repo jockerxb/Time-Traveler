@@ -8,28 +8,32 @@ enum LaunchStrategy {
 }
 
 struct AppSpec: Identifiable, Hashable {
-    let name: String
+    let chineseName: String
+    let englishName: String
     let bundleIdentifier: String
     let fallbackPath: String
     let strategy: LaunchStrategy
     var id: String { bundleIdentifier }
+    func displayName(in language: AppLanguage) -> String { language == .chinese ? chineseName : englishName }
 }
 
 @MainActor
 final class AppModel: ObservableObject {
     private static let selectedTimeZoneKey = "selectedLaunchTimeZone.v2"
+    private static let languageKey = "appLanguage.v1"
 
     @Published private(set) var selectedTimeZone: Destination?
+    @Published private(set) var language: AppLanguage
     @Published private(set) var now = Date()
     @Published private(set) var busyAppID: String?
     @Published private(set) var statusMessage: String?
     @Published private(set) var statusIsError = false
 
     let apps: [AppSpec] = [
-        AppSpec(name: "飞书", bundleIdentifier: "com.electron.lark", fallbackPath: "/Applications/Lark.app", strategy: .coldStart),
-        AppSpec(name: "微信", bundleIdentifier: "com.tencent.xinWeChat", fallbackPath: "/Applications/WeChat.app", strategy: .environment),
-        AppSpec(name: "WhatsApp", bundleIdentifier: "net.whatsapp.WhatsApp", fallbackPath: "/Applications/WhatsApp.app", strategy: .environment),
-        AppSpec(name: "Telegram", bundleIdentifier: "ru.keepcoder.Telegram", fallbackPath: "/Applications/Telegram.app", strategy: .environment),
+        AppSpec(chineseName: "飞书", englishName: "Feishu", bundleIdentifier: "com.electron.lark", fallbackPath: "/Applications/Lark.app", strategy: .coldStart),
+        AppSpec(chineseName: "微信", englishName: "WeChat", bundleIdentifier: "com.tencent.xinWeChat", fallbackPath: "/Applications/WeChat.app", strategy: .environment),
+        AppSpec(chineseName: "WhatsApp", englishName: "WhatsApp", bundleIdentifier: "net.whatsapp.WhatsApp", fallbackPath: "/Applications/WhatsApp.app", strategy: .environment),
+        AppSpec(chineseName: "Telegram", englishName: "Telegram", bundleIdentifier: "ru.keepcoder.Telegram", fallbackPath: "/Applications/Telegram.app", strategy: .environment),
     ]
 
     private let defaults: UserDefaults
@@ -37,12 +41,24 @@ final class AppModel: ObservableObject {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        if let saved = defaults.string(forKey: Self.languageKey), let savedLanguage = AppLanguage(rawValue: saved) {
+            language = savedLanguage
+        } else {
+            language = Locale.preferredLanguages.first?.hasPrefix("zh") == true ? .chinese : .english
+        }
         if let saved = defaults.string(forKey: Self.selectedTimeZoneKey) {
             selectedTimeZone = Destination(rawValue: saved)
         }
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.now = Date() }
         }
+    }
+
+    func chooseLanguage(_ newLanguage: AppLanguage) {
+        language = newLanguage
+        defaults.set(newLanguage.rawValue, forKey: Self.languageKey)
+        statusMessage = nil
+        statusIsError = false
     }
 
     func chooseTimeZone(_ destination: Destination) {
@@ -69,20 +85,22 @@ final class AppModel: ObservableObject {
 
     func applicationIcon(for app: AppSpec) -> NSImage {
         guard let url = applicationURL(for: app) else {
-            return NSImage(systemSymbolName: "app.dashed", accessibilityDescription: "未安装") ?? NSImage()
+            return NSImage(systemSymbolName: "app.dashed", accessibilityDescription: AppText(language: language).notInstalled) ?? NSImage()
         }
         return NSWorkspace.shared.icon(forFile: url.path)
     }
 
     func reportMissingApplication(_ app: AppSpec) {
+        let text = AppText(language: language)
+        let appName = app.displayName(in: language)
         statusIsError = true
-        statusMessage = "尚未安装\(app.name)，请安装后再试。"
+        statusMessage = text.missingAppStatus(appName)
 
         let alert = NSAlert()
         alert.alertStyle = .informational
-        alert.messageText = "尚未安装\(app.name)"
-        alert.informativeText = "请先安装\(app.name)，然后再试。"
-        alert.addButton(withTitle: "好")
+        alert.messageText = text.missingAppTitle(appName)
+        alert.informativeText = text.missingAppBody(appName)
+        alert.addButton(withTitle: text.okay)
         alert.runModal()
     }
 
@@ -94,34 +112,43 @@ final class AppModel: ObservableObject {
             return
         }
 
+        let launchLanguage = language
+        let text = AppText(language: launchLanguage)
+        let appName = app.displayName(in: launchLanguage)
+        let city = destination.displayCity(in: launchLanguage)
+
         let running = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleIdentifier)
         if !running.isEmpty {
             let alert = NSAlert()
-            alert.messageText = "重新启动\(app.name)？"
-            alert.informativeText = "时区只在启动时读取。继续操作会先退出当前进程，请确认没有未发送的内容。"
-            alert.addButton(withTitle: "退出并启动")
-            alert.addButton(withTitle: "取消")
+            alert.messageText = text.restartAppTitle(appName)
+            alert.informativeText = text.restartAppBody
+            alert.addButton(withTitle: text.quitAndLaunch)
+            alert.addButton(withTitle: text.cancel)
             guard alert.runModal() == .alertFirstButtonReturn else { return }
         }
 
         busyAppID = app.id
         statusIsError = false
-        statusMessage = "正在以\(destination.city)时区启动\(app.name)…"
+        statusMessage = text.launchingStatus(app: appName, city: city)
 
         Task {
             do {
                 try await Task.detached(priority: .userInitiated) {
-                    try AppLaunchEngine.restartAndLaunch(app: app, appURL: appURL, timeZone: destination.rawValue)
+                    try AppLaunchEngine.restartAndLaunch(app: app, appURL: appURL, timeZone: destination.rawValue, language: launchLanguage)
                 }.value
                 statusIsError = false
-                statusMessage = "\(app.name)已按\(destination.city)时区启动。"
+                let currentText = AppText(language: language)
+                statusMessage = currentText.launchedStatus(
+                    app: app.displayName(in: language),
+                    city: destination.displayCity(in: language)
+                )
             } catch {
                 statusIsError = true
                 statusMessage = error.localizedDescription
                 let alert = NSAlert()
-                alert.messageText = "启动失败"
+                alert.messageText = AppText(language: language).launchFailed
                 alert.informativeText = error.localizedDescription
-                alert.addButton(withTitle: "好")
+                alert.addButton(withTitle: AppText(language: language).okay)
                 alert.runModal()
             }
             busyAppID = nil
@@ -130,8 +157,10 @@ final class AppModel: ObservableObject {
 }
 
 private enum AppLaunchEngine {
-    static func restartAndLaunch(app: AppSpec, appURL: URL, timeZone: String) throws {
-        try terminateRunningApplications(for: app)
+    static func restartAndLaunch(app: AppSpec, appURL: URL, timeZone: String, language: AppLanguage) throws {
+        let text = AppText(language: language)
+        let appName = app.displayName(in: language)
+        try terminateRunningApplications(for: app, language: language)
 
         let originalTimeZone = systemTimeZoneName()
         var switchedSystemTimeZone = false
@@ -141,18 +170,18 @@ private enum AppLaunchEngine {
             if app.strategy == .coldStart && originalTimeZone != timeZone {
                 let command = "/usr/sbin/systemsetup -settimezone \(shellQuote(timeZone)) >/dev/null; "
                     + "(/bin/sleep 45; /usr/sbin/systemsetup -settimezone \(shellQuote(originalTimeZone)) >/dev/null) >/dev/null 2>&1 &"
-                try runAdministratorCommand(command)
+                try runAdministratorCommand(command, language: language)
                 switchedSystemTimeZone = true
                 guard waitForSystemTimeZone(timeZone, timeout: 10) else {
-                    throw launchError("系统时区未能临时切换到目标时区。")
+                    throw launchError(text.systemSwitchFailed)
                 }
             }
 
-            try launchExecutable(appURL: appURL, timeZone: timeZone)
+            try launchExecutable(appURL: appURL, timeZone: timeZone, language: language)
             Thread.sleep(forTimeInterval: app.strategy == .coldStart ? 15 : 3)
             let running = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleIdentifier)
             guard let application = running.first else {
-                throw launchError("\(app.name)进程没有在预期时间内出现。")
+                throw launchError(text.appDidNotAppear(appName))
             }
             DispatchQueue.main.async {
                 application.activate(options: [.activateIgnoringOtherApps])
@@ -163,13 +192,13 @@ private enum AppLaunchEngine {
 
         if switchedSystemTimeZone {
             do {
-                try runAdministratorCommand("/usr/sbin/systemsetup -settimezone \(shellQuote(originalTimeZone)) >/dev/null")
+                try runAdministratorCommand("/usr/sbin/systemsetup -settimezone \(shellQuote(originalTimeZone)) >/dev/null", language: language)
                 guard waitForSystemTimeZone(originalTimeZone, timeout: 10) else {
-                    throw launchError("系统时区未能恢复为\(originalTimeZone)。请立即在系统设置中恢复。")
+                    throw launchError(text.systemRestoreFailed(originalTimeZone))
                 }
             } catch {
                 if capturedError == nil {
-                    capturedError = launchError("应用可能已启动，但系统时区未能恢复为\(originalTimeZone)：\(error.localizedDescription)")
+                    capturedError = launchError(text.systemMayNotHaveRestored(originalTimeZone, error: error.localizedDescription))
                 }
             }
         }
@@ -177,7 +206,7 @@ private enum AppLaunchEngine {
         if let capturedError { throw capturedError }
     }
 
-    private static func terminateRunningApplications(for app: AppSpec) throws {
+    private static func terminateRunningApplications(for app: AppSpec, language: AppLanguage) throws {
         let running = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleIdentifier)
         running.forEach { $0.terminate() }
         guard !running.isEmpty else { return }
@@ -187,12 +216,12 @@ private enum AppLaunchEngine {
             if NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleIdentifier).isEmpty { return }
             Thread.sleep(forTimeInterval: 0.25)
         }
-        throw launchError("\(app.name)没有正常退出。请先手动退出后再试，避免丢失未发送内容。")
+        throw launchError(AppText(language: language).appDidNotQuit(app.displayName(in: language)))
     }
 
-    private static func launchExecutable(appURL: URL, timeZone: String) throws {
+    private static func launchExecutable(appURL: URL, timeZone: String, language: AppLanguage) throws {
         guard let executable = Bundle(url: appURL)?.executableURL else {
-            throw launchError("无法找到应用的可执行文件。")
+            throw launchError(AppText(language: language).executableMissing)
         }
 
         let process = Process()
@@ -234,12 +263,12 @@ private enum AppLaunchEngine {
         return false
     }
 
-    private static func runAdministratorCommand(_ command: String) throws {
+    private static func runAdministratorCommand(_ command: String, language: AppLanguage) throws {
         let escaped = command.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
         let script = NSAppleScript(source: "do shell script \"\(escaped)\" with administrator privileges")
         var dictionary: NSDictionary?
         guard script?.executeAndReturnError(&dictionary) != nil, dictionary == nil else {
-            let message = dictionary?[NSAppleScript.errorMessage] as? String ?? "管理员授权失败。"
+            let message = dictionary?[NSAppleScript.errorMessage] as? String ?? AppText(language: language).administratorAuthorizationFailed
             throw launchError(message)
         }
     }

@@ -7,7 +7,7 @@ mkdir -p "$BUILD"
 
 /usr/bin/xcrun swiftc -O \
     -module-cache-path "$BUILD/module-cache" \
-    Sources/TimezoneCatalog.swift Tests/TimezoneCatalogTests.swift \
+    Sources/Localization.swift Sources/TimezoneCatalog.swift Tests/TimezoneCatalogTests.swift \
     -o "$BUILD/timezone-tests"
 "$BUILD/timezone-tests"
 

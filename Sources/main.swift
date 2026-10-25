@@ -10,6 +10,7 @@ struct TimeTravelerView: View {
     @ObservedObject var model: AppModel
     @State private var pickerPresented = false
     @State private var pendingApp: AppSpec?
+    private var text: AppText { AppText(language: model.language) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -24,7 +25,7 @@ struct TimeTravelerView: View {
         .sheet(isPresented: $pickerPresented, onDismiss: {
             pendingApp = nil
         }) {
-            ZonePicker(selected: model.selectedTimeZone) { destination in
+            ZonePicker(selected: model.selectedTimeZone, language: model.language) { destination in
                 let appToLaunch = pendingApp
                 pendingApp = nil
                 model.chooseTimeZone(destination)
@@ -47,11 +48,12 @@ struct TimeTravelerView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Time Traveler")
                     .font(.system(size: 24, weight: .semibold))
-                Text("让聊天软件使用你选择的时区")
+                Text(text.subtitle)
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
             }
             Spacer()
+            languageMenu
             Link(destination: projectURL) {
                 Label("GitHub", systemImage: "arrow.up.right.square")
                     .font(.system(size: 12, weight: .medium))
@@ -62,8 +64,40 @@ struct TimeTravelerView: View {
                     .clipShape(Capsule())
             }
             .buttonStyle(.plain)
-            .help("打开 Time Traveler GitHub 项目")
-            .accessibilityLabel("打开 Time Traveler GitHub 项目")
+            .help(text.openGitHub)
+            .accessibilityLabel(text.openGitHub)
+        }
+    }
+
+    private var languageMenu: some View {
+        Menu {
+            languageOption(.chinese, title: "中文")
+            languageOption(.english, title: "English")
+        } label: {
+            Image(systemName: "character.bubble")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(accent)
+                .frame(width: 32, height: 32)
+                .background(accent.opacity(0.08))
+                .clipShape(Circle())
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(text.switchLanguage)
+        .accessibilityLabel(text.switchLanguage)
+    }
+
+    @ViewBuilder
+    private func languageOption(_ language: AppLanguage, title: String) -> some View {
+        Button {
+            model.chooseLanguage(language)
+        } label: {
+            if model.language == language {
+                Label(title, systemImage: "checkmark")
+            } else {
+                Text(title)
+            }
         }
     }
 
@@ -80,19 +114,19 @@ struct TimeTravelerView: View {
                         .frame(width: 28)
                     if let zone = model.selectedTimeZone {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(zone.city)
+                            Text(zone.displayCity(in: model.language))
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.primary)
-                            Text("\(zone.offset(at: model.now)) · \(zone.time(at: model.now))")
+                            Text("\(zone.offset(at: model.now)) · \(zone.time(at: model.now, language: model.language))")
                                 .font(.system(size: 11, design: .monospaced))
                                 .foregroundColor(.secondary)
                         }
                     } else {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("选择启动时区")
+                            Text(text.selectLaunchTimeZone)
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.primary)
-                            Text("首次使用时为空，选择后会保存在本机")
+                            Text(text.emptyTimeZoneHint)
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
@@ -120,7 +154,7 @@ struct TimeTravelerView: View {
                 Button(role: .destructive) {
                     model.clearTimeZone()
                 } label: {
-                    Label("清除\(zone.city)启动时区", systemImage: "trash")
+                    Label(text.clearLaunchTimeZone(zone.displayCity(in: model.language)), systemImage: "trash")
                 }
             }
         }
@@ -128,7 +162,7 @@ struct TimeTravelerView: View {
 
     private var appLauncher: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("点击图标启动")
+            Text(text.clickToLaunch)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.secondary)
             HStack(alignment: .top, spacing: 12) {
@@ -168,12 +202,12 @@ struct TimeTravelerView: View {
                     }
                 }
                 .frame(width: 72, height: 72)
-                Text(app.name)
+                Text(app.displayName(in: model.language))
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(installed ? .primary : .secondary)
                     .lineLimit(1)
                 if !installed {
-                    Text("未安装")
+                    Text(text.notInstalled)
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
                 }
@@ -184,7 +218,11 @@ struct TimeTravelerView: View {
         .buttonStyle(AppIconButtonStyle())
         .disabled(model.busyAppID != nil)
         .opacity(installed ? 1 : 0.48)
-        .accessibilityLabel(installed ? "启动\(app.name)" : "\(app.name)未安装，点击查看提示")
+        .accessibilityLabel(
+            installed
+                ? text.launchAccessibility(app.displayName(in: model.language))
+                : text.missingAccessibility(app.displayName(in: model.language))
+        )
     }
 
     private var status: some View {
@@ -196,7 +234,7 @@ struct TimeTravelerView: View {
                     .foregroundColor(model.statusIsError ? .red : .secondary)
             } else {
                 Image(systemName: "info.circle")
-                Text("首次点击应用时，如果尚未选择时区，会先打开时区选择器。")
+                Text(text.initialLaunchHint)
             }
         }
         .font(.system(size: 11))
@@ -220,17 +258,32 @@ private struct AppIconButtonStyle: ButtonStyle {
 
 final class PickerCatalog: ObservableObject {
     private let referenceDate: Date
+    private var language: AppLanguage
+    private var query = ""
     @Published private(set) var groups: [ZoneCatalog.OffsetGroup]
-    var summary: String { "\(groups.count) 个时区 · \(groups.reduce(0) { $0 + $1.zones.count }) 个城市" }
 
-    init() {
+    init(language: AppLanguage) {
         let date = Date()
         referenceDate = date
-        groups = ZoneCatalog.groups("", at: date)
+        self.language = language
+        groups = ZoneCatalog.groups("", at: date, language: language)
     }
 
     func search(_ query: String) {
-        groups = ZoneCatalog.groups(query, at: referenceDate)
+        self.query = query
+        groups = ZoneCatalog.groups(query, at: referenceDate, language: language)
+    }
+
+    func changeLanguage(_ language: AppLanguage) {
+        self.language = language
+        groups = ZoneCatalog.groups(query, at: referenceDate, language: language)
+    }
+
+    func summary(in language: AppLanguage) -> String {
+        AppText(language: language).catalogSummary(
+            groupCount: groups.count,
+            cityCount: groups.reduce(0) { $0 + $1.zones.count }
+        )
     }
 }
 
@@ -243,31 +296,40 @@ private struct OffsetPositions: PreferenceKey {
 
 struct ZonePicker: View {
     let selected: Destination?
+    let language: AppLanguage
     let onSelect: (Destination) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
     @State private var visibleOffset: Int?
-    @StateObject private var catalog = PickerCatalog()
+    @StateObject private var catalog: PickerCatalog
+    private var text: AppText { AppText(language: language) }
+
+    init(selected: Destination?, language: AppLanguage, onSelect: @escaping (Destination) -> Void) {
+        self.selected = selected
+        self.language = language
+        self.onSelect = onSelect
+        _catalog = StateObject(wrappedValue: PickerCatalog(language: language))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("选择启动时区").font(.system(size: 18, weight: .semibold))
-                    Text("聊天软件会按这个时区重新启动；系统时区保持原设置。")
+                    Text(text.selectLaunchTimeZone).font(.system(size: 18, weight: .semibold))
+                    Text(text.pickerSubtitle)
                         .font(.system(size: 12)).foregroundColor(.secondary)
                 }
                 Spacer()
-                Button { dismiss() } label: { Label("关闭", systemImage: "xmark") }
+                Button { dismiss() } label: { Label(text.close, systemImage: "xmark") }
                     .keyboardShortcut(.cancelAction)
-                    .accessibilityLabel("关闭时区选择")
+                    .accessibilityLabel(text.closeTimeZonePicker)
             }
 
-            TextField("搜索时区/城市，例如：utc9、北京", text: $search)
+            TextField(text.searchPlaceholder, text: $search)
                 .textFieldStyle(.roundedBorder)
-                .accessibilityLabel("搜索全球时区")
+                .accessibilityLabel(text.searchTimeZones)
 
-            Text(catalog.summary)
+            Text(catalog.summary(in: language))
                 .font(.system(size: 11))
                 .foregroundColor(.secondary)
 
@@ -307,6 +369,10 @@ struct ZonePicker: View {
             visibleOffset = nil
             catalog.search(query)
         }
+        .onChange(of: language) { newLanguage in
+            visibleOffset = nil
+            catalog.changeLanguage(newLanguage)
+        }
     }
 
     private var currentGroup: ZoneCatalog.OffsetGroup? {
@@ -337,7 +403,7 @@ struct ZonePicker: View {
                             } label: {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 4) {
-                                        Text(zone.city).font(.system(size: 13, weight: .medium))
+                                        Text(zone.displayCity(in: language)).font(.system(size: 13, weight: .medium))
                                         Text(zone.rawValue)
                                             .font(.system(size: 10, design: .monospaced))
                                             .foregroundColor(.secondary)
@@ -389,7 +455,7 @@ struct ZonePicker: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay {
             if catalog.groups.isEmpty {
-                Text("未找到结果，试试 utc9、utc-8 或北京。")
+                Text(text.noSearchResults)
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
             }
