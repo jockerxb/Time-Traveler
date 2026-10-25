@@ -146,20 +146,18 @@ struct TimeTravelerView: View {
         } label: {
             VStack(spacing: 9) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 15, style: .continuous)
-                        .fill(Color(nsColor: .controlBackgroundColor))
-                        .frame(width: 72, height: 72)
                     Image(nsImage: model.applicationIcon(for: app))
                         .resizable()
                         .interpolation(.high)
-                        .frame(width: 54, height: 54)
+                        .frame(width: 60, height: 60)
                     if busy {
                         RoundedRectangle(cornerRadius: 15, style: .continuous)
                             .fill(Color.black.opacity(0.28))
-                            .frame(width: 72, height: 72)
+                            .frame(width: 64, height: 64)
                         ProgressView().controlSize(.small).tint(.white)
                     }
                 }
+                .frame(width: 72, height: 72)
                 Text(app.name)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(installed ? .primary : .secondary)
