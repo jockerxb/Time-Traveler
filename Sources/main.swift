@@ -143,7 +143,10 @@ struct TimeTravelerView: View {
         let installed = model.applicationURL(for: app) != nil
         let busy = model.busyAppID == app.id
         return Button {
-            guard installed else { return }
+            guard installed else {
+                model.reportMissingApplication(app)
+                return
+            }
             if model.selectedTimeZone == nil {
                 pendingApp = app
                 pickerPresented = true
@@ -179,9 +182,9 @@ struct TimeTravelerView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(AppIconButtonStyle())
-        .disabled(!installed || model.busyAppID != nil)
+        .disabled(model.busyAppID != nil)
         .opacity(installed ? 1 : 0.48)
-        .accessibilityLabel(installed ? "启动\(app.name)" : "\(app.name)未安装")
+        .accessibilityLabel(installed ? "启动\(app.name)" : "\(app.name)未安装，点击查看提示")
     }
 
     private var status: some View {

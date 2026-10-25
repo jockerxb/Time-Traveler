@@ -74,12 +74,23 @@ final class AppModel: ObservableObject {
         return NSWorkspace.shared.icon(forFile: url.path)
     }
 
+    func reportMissingApplication(_ app: AppSpec) {
+        statusIsError = true
+        statusMessage = "尚未安装\(app.name)，请安装后再试。"
+
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = "尚未安装\(app.name)"
+        alert.informativeText = "请先安装\(app.name)，然后再试。"
+        alert.addButton(withTitle: "好")
+        alert.runModal()
+    }
+
     func launch(_ app: AppSpec) {
         guard busyAppID == nil else { return }
         guard let destination = selectedTimeZone else { return }
         guard let appURL = applicationURL(for: app) else {
-            statusIsError = true
-            statusMessage = "没有检测到\(app.name)。"
+            reportMissingApplication(app)
             return
         }
 
