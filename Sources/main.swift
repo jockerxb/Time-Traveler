@@ -163,11 +163,11 @@ struct TimeTravelerView: View {
                 .stroke(model.selectedTimeZone == nil ? warm.opacity(0.35) : accent.opacity(0.28), lineWidth: 1)
         }
         .contextMenu {
-            if let zone = model.selectedTimeZone {
+            if model.selectedTimeZone != nil {
                 Button(role: .destructive) {
                     model.clearTimeZone()
                 } label: {
-                    Label(text.clearLaunchTimeZone(zone.displayCity(in: model.language)), systemImage: "trash")
+                    Label(text.clearLaunchTimeZone(), systemImage: "trash")
                 }
             }
         }
