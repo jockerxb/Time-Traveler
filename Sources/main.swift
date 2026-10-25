@@ -9,6 +9,7 @@ private let projectURL = URL(string: "https://github.com/jockerxb/Time-Traveler"
 struct TimeTravelerView: View {
     @ObservedObject var model: AppModel
     @State private var pickerPresented = false
+    @State private var languagePopoverPresented = false
     @State private var pendingApp: AppSpec?
     private var text: AppText { AppText(language: model.language) }
 
@@ -59,9 +60,9 @@ struct TimeTravelerView: View {
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(accent)
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
+                    .frame(height: 34)
                     .background(accent.opacity(0.08))
-                    .clipShape(Capsule())
+                    .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
             }
             .buttonStyle(.plain)
             .help(text.openGitHub)
@@ -70,35 +71,47 @@ struct TimeTravelerView: View {
     }
 
     private var languageMenu: some View {
-        Menu {
-            languageOption(.chinese, title: "中文")
-            languageOption(.english, title: "English")
+        Button {
+            languagePopoverPresented.toggle()
         } label: {
-            Image(systemName: "character.bubble")
-                .font(.system(size: 14, weight: .medium))
+            Image(systemName: "translate")
+                .font(.system(size: 15, weight: .medium))
                 .foregroundColor(accent)
-                .frame(width: 32, height: 32)
+                .frame(width: 42, height: 34)
                 .background(accent.opacity(0.08))
-                .clipShape(Circle())
+                .clipShape(RoundedRectangle(cornerRadius: 17, style: .continuous))
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
+        .buttonStyle(.plain)
         .help(text.switchLanguage)
         .accessibilityLabel(text.switchLanguage)
+        .popover(isPresented: $languagePopoverPresented, arrowEdge: .bottom) {
+            VStack(spacing: 2) {
+                languageOption(.chinese, title: "中文")
+                languageOption(.english, title: "English")
+            }
+            .padding(7)
+            .frame(width: 160)
+        }
     }
 
-    @ViewBuilder
     private func languageOption(_ language: AppLanguage, title: String) -> some View {
         Button {
             model.chooseLanguage(language)
+            languagePopoverPresented = false
         } label: {
-            if model.language == language {
-                Label(title, systemImage: "checkmark")
-            } else {
+            HStack {
                 Text(title)
+                Spacer()
+                if model.language == language {
+                    Image(systemName: "checkmark")
+                        .foregroundColor(accent)
+                }
             }
+            .padding(.horizontal, 9)
+            .frame(maxWidth: .infinity, minHeight: 32)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 
     private var timeZoneSelector: some View {
