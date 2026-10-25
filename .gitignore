@@ -1,0 +1,6 @@
+.DS_Store
+.build/
+.build-tests/
+dist/
+backups/
+*.log
