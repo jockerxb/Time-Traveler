@@ -13,6 +13,7 @@ Time Traveler 是一款开源的 macOS 时区启动器。即使系统切换到�
 当你修改 Mac 系统时区后，仍希望飞书、微信等 IM 软件保留其常用所在地时区，避免消息和日历时间随系统一起变化。
 
 ## 基础功能
+<img width="1140" height="848" alt="image" src="https://github.com/user-attachments/assets/7682cb29-8f51-4937-ad1c-c68687fabcac" />
 
 - 为 **飞书、微信、WhatsApp 和 Telegram** 单独选择启动时区，系统时区保持原设置或在启动后自动恢复。
 - 本地运行、开源透明，不上传聊天内容和个人数据。
