@@ -90,32 +90,26 @@ struct TimeTravelerView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding(.leading, 15)
-                .padding(.trailing, model.selectedTimeZone == nil ? 15 : 6)
+                .padding(.trailing, 15)
                 .frame(maxWidth: .infinity, minHeight: 64)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-
-            if model.selectedTimeZone != nil {
-                Button {
-                    model.clearTimeZone()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(.secondary.opacity(0.7))
-                        .frame(width: 42, height: 64)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .help("清除启动时区")
-                .accessibilityLabel("清除启动时区")
-            }
         }
         .background(Color(nsColor: .controlBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(model.selectedTimeZone == nil ? warm.opacity(0.35) : accent.opacity(0.28), lineWidth: 1)
+        }
+        .contextMenu {
+            if let zone = model.selectedTimeZone {
+                Button(role: .destructive) {
+                    model.clearTimeZone()
+                } label: {
+                    Label("清除\(zone.city)启动时区", systemImage: "trash")
+                }
+            }
         }
     }
 
