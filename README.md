@@ -1,3 +1,5 @@
+**中文** · [English](README_EN.md)
+
 ![Time Traveler：系统时区随处走，聊天时间由你选](Assets/README-Hero.jpg)
 
 # Time Traveler
