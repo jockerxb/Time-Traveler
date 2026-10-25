@@ -4,6 +4,7 @@ import SwiftUI
 
 private let accent = Color(red: 0.12, green: 0.43, blue: 0.92)
 private let warm = Color(red: 0.96, green: 0.58, blue: 0.08)
+private let projectURL = URL(string: "https://github.com/jockerxb/Time-Traveler")!
 
 struct TimeTravelerView: View {
     @ObservedObject var model: AppModel
@@ -51,6 +52,18 @@ struct TimeTravelerView: View {
                     .foregroundColor(.secondary)
             }
             Spacer()
+            Link(destination: projectURL) {
+                Label("GitHub", systemImage: "arrow.up.right.square")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(accent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(accent.opacity(0.08))
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .help("打开 Time Traveler GitHub 项目")
+            .accessibilityLabel("打开 Time Traveler GitHub 项目")
         }
     }
 
