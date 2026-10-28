@@ -9,13 +9,6 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        if (e.Args.Length > 0 && e.Args[0] == "--elevated-helper")
-        {
-            var exitCode = ElevatedTimeZoneHelper.Run(e.Args.Skip(1).ToArray());
-            Environment.Exit(exitCode);
-            return;
-        }
-
         if (e.Args.Length > 1 && e.Args[0] == "--capture-ui")
         {
             var captureLanguage = e.Args.Contains("--english") ? AppLanguage.English : AppLanguage.Chinese;

@@ -138,7 +138,6 @@ public sealed class HybridLauncher
             CreateNoWindow = !useElevation
         };
         if (useElevation) startInfo.Verb = "runas";
-        startInfo.ArgumentList.Add("--elevated-helper");
         startInfo.ArgumentList.Add(jobPath);
 
         try
