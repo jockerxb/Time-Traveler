@@ -44,7 +44,9 @@ public static class IntegrationTestCommand
                 useElevation: false,
                 warmupSeconds: 1);
 
-            var probe = JsonSerializer.Deserialize<ProbeResult>(File.ReadAllText(probeResultPath))
+            var probe = JsonSerializer.Deserialize<ProbeResult>(
+                            File.ReadAllText(probeResultPath),
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                         ?? throw new InvalidOperationException("The probe returned invalid JSON.");
             var currentAfterTest = TimeZoneCommand.GetCurrent();
 
