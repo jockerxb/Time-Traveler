@@ -34,15 +34,18 @@ jobs:
         shell: pwsh
         run: |
           dotnet publish Windows/TimeTraveler.Windows/TimeTraveler.Windows.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows/test-bin/app
+          dotnet publish Windows/TimeTraveler.Helper/TimeTraveler.Helper.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows/test-bin/helper
           dotnet publish Windows/TimeTraveler.Probe/TimeTraveler.Probe.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o Windows/test-bin/probe
+          dotnet publish Windows/TimeTraveler.IntegrationTests/TimeTraveler.IntegrationTests.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o Windows/test-bin/integration
 
       - name: Test launch and guaranteed time-zone restore
         timeout-minutes: 4
         shell: pwsh
         run: |
           ./Windows/scripts/integration-test.ps1 `
-            -AppExecutable "$PWD/Windows/test-bin/app/TimeTraveler.exe" `
+            -AppExecutable "$PWD/Windows/test-bin/integration/TimeTraveler.IntegrationTests.exe" `
             -ProbeExecutable "$PWD/Windows/test-bin/probe/TimeTraveler.Probe.exe" `
+            -HelperExecutable "$PWD/Windows/test-bin/helper/TimeTraveler.Helper.exe" `
             -ResultDirectory "$PWD/Windows/test-results"
 
       - name: Capture Chinese and English interfaces

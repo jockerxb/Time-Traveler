@@ -8,6 +8,9 @@ namespace TimeTraveler.Windows.Services;
 public sealed class HybridLauncher
 {
     private readonly JsonSerializerOptions _jsonOptions = new() { WriteIndented = true };
+    private readonly string? _helperExecutable;
+
+    public HybridLauncher(string? helperExecutable = null) => _helperExecutable = helperExecutable;
 
     public bool IsRunning(AppDefinition app) =>
         app.ProcessNames.Any(name => Process.GetProcessesByName(name).Any(process => !process.HasExited));
@@ -125,9 +128,9 @@ public sealed class HybridLauncher
         return new AppLaunchResult(original, destination.Id, true, helperResult.Restored);
     }
 
-    private static Process StartHelper(string jobPath, bool useElevation)
+    private Process StartHelper(string jobPath, bool useElevation)
     {
-        var executable = Environment.ProcessPath ?? throw new InvalidOperationException("Could not locate the Time Traveler executable.");
+        var executable = ResolveHelperExecutable();
         var startInfo = new ProcessStartInfo
         {
             FileName = executable,
@@ -146,6 +149,16 @@ public sealed class HybridLauncher
         {
             throw new UnauthorizedAccessException("Administrator permission was not granted.", error);
         }
+    }
+
+    private string ResolveHelperExecutable()
+    {
+        var executable = _helperExecutable ?? Path.Combine(AppContext.BaseDirectory, "TimeTraveler.Helper.exe");
+        if (!File.Exists(executable))
+        {
+            throw new FileNotFoundException("TimeTraveler.Helper.exe is missing. Re-extract the complete Time Traveler package.", executable);
+        }
+        return executable;
     }
 
     private static async Task WaitForReadyOrFailure(Process helper, string readyPath, string resultPath, TimeSpan timeout, CancellationToken cancellationToken)

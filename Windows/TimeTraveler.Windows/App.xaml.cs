@@ -16,13 +16,6 @@ public partial class App : Application
             return;
         }
 
-        if (e.Args.Length > 0 && e.Args[0] == "--integration-test")
-        {
-            var exitCode = IntegrationTestCommand.RunAsync(e.Args.Skip(1).ToArray()).GetAwaiter().GetResult();
-            Environment.Exit(exitCode);
-            return;
-        }
-
         if (e.Args.Length > 1 && e.Args[0] == "--capture-ui")
         {
             var captureLanguage = e.Args.Contains("--english") ? AppLanguage.English : AppLanguage.Chinese;

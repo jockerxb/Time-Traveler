@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$AppExecutable,
     [Parameter(Mandatory = $true)][string]$ProbeExecutable,
+    [Parameter(Mandatory = $true)][string]$HelperExecutable,
     [string]$ResultDirectory = ""
 )
 
@@ -16,7 +17,7 @@ if ([string]::IsNullOrWhiteSpace($originalZone)) { throw "Could not read the ori
 Set-Content -Path (Join-Path $ResultDirectory "original-time-zone.txt") -Value $originalZone
 
 try {
-    $process = Start-Process -FilePath $AppExecutable -ArgumentList @("--integration-test", $ProbeExecutable, $ResultDirectory) -Wait -PassThru
+    $process = Start-Process -FilePath $AppExecutable -ArgumentList @($ProbeExecutable, $HelperExecutable, $ResultDirectory) -Wait -PassThru -NoNewWindow
     if ($process.ExitCode -ne 0) {
         $summary = Join-Path $ResultDirectory "integration-result.json"
         if (Test-Path $summary) { Get-Content $summary }

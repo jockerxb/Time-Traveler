@@ -7,9 +7,10 @@ public static class IntegrationTestCommand
 {
     public static async Task<int> RunAsync(string[] args)
     {
-        if (args.Length != 2 || !File.Exists(args[0])) return 64;
+        if (args.Length != 3 || !File.Exists(args[0]) || !File.Exists(args[1])) return 64;
         var probeExecutable = Path.GetFullPath(args[0]);
-        var resultDirectory = Path.GetFullPath(args[1]);
+        var helperExecutable = Path.GetFullPath(args[1]);
+        var resultDirectory = Path.GetFullPath(args[2]);
         Directory.CreateDirectory(resultDirectory);
         var probeResultPath = Path.Combine(resultDirectory, "probe-result.json");
         var summaryPath = Path.Combine(resultDirectory, "integration-result.json");
@@ -33,7 +34,8 @@ public static class IntegrationTestCommand
                 "#256CF4",
                 1);
 
-            var launcher = new HybridLauncher();
+            Log(resultDirectory, "normal-launch:start");
+            var launcher = new HybridLauncher(helperExecutable);
             var launchResult = await launcher.LaunchAsync(
                 app,
                 new LaunchTarget(LaunchTargetKind.Executable, probeExecutable),
@@ -53,9 +55,10 @@ public static class IntegrationTestCommand
             Assert(string.Equals(currentAfterTest, original, StringComparison.OrdinalIgnoreCase),
                 $"System time zone was not restored. Current '{currentAfterTest}', expected '{original}'.");
             Assert(launchResult.Restored, "Launcher did not report a successful restore.");
+            Log(resultDirectory, "normal-launch:restored");
 
-            var launchFailureRestored = await VerifyLaunchFailureRestoresAsync(app, destination, original);
-            var parentCrashRestored = await VerifyParentCrashRestoresAsync(destination, original, resultDirectory);
+            var launchFailureRestored = await VerifyLaunchFailureRestoresAsync(app, destination, original, helperExecutable, resultDirectory);
+            var parentCrashRestored = await VerifyParentCrashRestoresAsync(destination, original, resultDirectory, helperExecutable);
 
             WriteSummary(summaryPath, new
             {
@@ -72,6 +75,7 @@ public static class IntegrationTestCommand
         }
         catch (Exception error)
         {
+            Log(resultDirectory, $"failed:{error.GetType().Name}:{error.Message}");
             WriteSummary(summaryPath, new { success = false, error = error.ToString(), currentTimeZone = SafeCurrentTimeZone() });
             return 1;
         }
@@ -82,9 +86,10 @@ public static class IntegrationTestCommand
         if (!condition) throw new InvalidOperationException(message);
     }
 
-    private static async Task<bool> VerifyLaunchFailureRestoresAsync(AppDefinition app, TimeZoneItem destination, string original)
+    private static async Task<bool> VerifyLaunchFailureRestoresAsync(AppDefinition app, TimeZoneItem destination, string original, string helperExecutable, string resultDirectory)
     {
-        var launcher = new HybridLauncher();
+        Log(resultDirectory, "launch-failure:start");
+        var launcher = new HybridLauncher(helperExecutable);
         var failedAsExpected = false;
         try
         {
@@ -104,11 +109,13 @@ public static class IntegrationTestCommand
         var actual = TimeZoneCommand.GetCurrent();
         Assert(string.Equals(actual, original, StringComparison.OrdinalIgnoreCase),
             $"Launch-failure path did not restore the system time zone. Current '{actual}', expected '{original}'.");
+        Log(resultDirectory, "launch-failure:restored");
         return true;
     }
 
-    private static async Task<bool> VerifyParentCrashRestoresAsync(TimeZoneItem destination, string original, string resultDirectory)
+    private static async Task<bool> VerifyParentCrashRestoresAsync(TimeZoneItem destination, string original, string resultDirectory, string helperExecutable)
     {
+        Log(resultDirectory, "parent-crash:start");
         var directory = Path.Combine(resultDirectory, "parent-crash-watchdog");
         Directory.CreateDirectory(directory);
         var jobPath = Path.Combine(directory, "job.json");
@@ -125,14 +132,12 @@ public static class IntegrationTestCommand
         };
         File.WriteAllText(jobPath, JsonSerializer.Serialize(job, new JsonSerializerOptions { WriteIndented = true }));
 
-        var executable = Environment.ProcessPath ?? throw new InvalidOperationException("Could not locate the test executable.");
         var startInfo = new System.Diagnostics.ProcessStartInfo
         {
-            FileName = executable,
+            FileName = helperExecutable,
             UseShellExecute = false,
             CreateNoWindow = true
         };
-        startInfo.ArgumentList.Add("--elevated-helper");
         startInfo.ArgumentList.Add(jobPath);
         using var helper = System.Diagnostics.Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start the watchdog helper.");
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(40));
@@ -144,8 +149,12 @@ public static class IntegrationTestCommand
         var actual = TimeZoneCommand.GetCurrent();
         Assert(string.Equals(actual, original, StringComparison.OrdinalIgnoreCase),
             $"Parent-crash watchdog did not restore the system time zone. Current '{actual}', expected '{original}'.");
+        Log(resultDirectory, "parent-crash:restored");
         return true;
     }
+
+    private static void Log(string resultDirectory, string message) =>
+        File.AppendAllText(Path.Combine(resultDirectory, "integration-progress.log"), $"{DateTimeOffset.UtcNow:O} {message}{Environment.NewLine}");
 
     private static void WriteSummary(string path, object value) =>
         File.WriteAllText(path, JsonSerializer.Serialize(value, new JsonSerializerOptions { WriteIndented = true }));
