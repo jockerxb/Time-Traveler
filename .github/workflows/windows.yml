@@ -37,6 +37,7 @@ jobs:
           dotnet publish Windows/TimeTraveler.Probe/TimeTraveler.Probe.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o Windows/test-bin/probe
 
       - name: Test launch and guaranteed time-zone restore
+        timeout-minutes: 4
         shell: pwsh
         run: |
           ./Windows/scripts/integration-test.ps1 `
@@ -45,6 +46,7 @@ jobs:
             -ResultDirectory "$PWD/Windows/test-results"
 
       - name: Capture Chinese and English interfaces
+        timeout-minutes: 2
         shell: pwsh
         run: |
           $zh = Start-Process -FilePath "$PWD/Windows/test-bin/app/TimeTraveler.exe" -ArgumentList @("--capture-ui", "$PWD/Windows/test-results/windows-ui-zh.png") -Wait -PassThru
@@ -65,3 +67,12 @@ jobs:
             Windows/test-results/*.json
             Windows/test-results/*.png
           if-no-files-found: error
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-failure-diagnostics
+          path: |
+            Windows/test-results/**
+          if-no-files-found: ignore
