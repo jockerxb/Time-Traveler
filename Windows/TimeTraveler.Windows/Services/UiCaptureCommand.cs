@@ -30,6 +30,16 @@ public static class UiCaptureCommand
         }
         catch (Exception error)
         {
+            try
+            {
+                var errorPath = Path.GetFullPath(outputPath) + ".error.txt";
+                Directory.CreateDirectory(Path.GetDirectoryName(errorPath)!);
+                File.WriteAllText(errorPath, error.ToString());
+            }
+            catch
+            {
+                // Preserve the original capture failure as the exit status.
+            }
             Console.Error.WriteLine(error);
             return 1;
         }
