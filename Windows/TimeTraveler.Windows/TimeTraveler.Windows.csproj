@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+    <AssemblyName>TimeTraveler</AssemblyName>
+    <RootNamespace>TimeTraveler.Windows</RootNamespace>
+    <Version>1.4.0-preview.1</Version>
+    <Product>Time Traveler</Product>
+    <Description>Launch chat apps in the time zone you choose.</Description>
+    <Authors>jockerxb</Authors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets\AppIcon.png" />
+    <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

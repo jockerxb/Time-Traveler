@@ -4,3 +4,7 @@
 dist/
 backups/
 *.log
+Windows/**/bin/
+Windows/**/obj/
+Windows/artifacts/
+Windows/test-results/

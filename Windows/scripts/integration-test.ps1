@@ -1,0 +1,38 @@
+param(
+    [Parameter(Mandatory = $true)][string]$AppExecutable,
+    [Parameter(Mandatory = $true)][string]$ProbeExecutable,
+    [string]$ResultDirectory = ""
+)
+
+$ErrorActionPreference = "Stop"
+if ([string]::IsNullOrWhiteSpace($ResultDirectory)) {
+    $ResultDirectory = Join-Path $PSScriptRoot "../test-results"
+}
+$ResultDirectory = [System.IO.Path]::GetFullPath($ResultDirectory)
+New-Item -ItemType Directory -Force -Path $ResultDirectory | Out-Null
+
+$originalZone = (tzutil /g).Trim()
+if ([string]::IsNullOrWhiteSpace($originalZone)) { throw "Could not read the original Windows time zone." }
+Set-Content -Path (Join-Path $ResultDirectory "original-time-zone.txt") -Value $originalZone
+
+try {
+    $process = Start-Process -FilePath $AppExecutable -ArgumentList @("--integration-test", $ProbeExecutable, $ResultDirectory) -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        $summary = Join-Path $ResultDirectory "integration-result.json"
+        if (Test-Path $summary) { Get-Content $summary }
+        throw "Time Traveler integration test failed with exit code $($process.ExitCode)."
+    }
+}
+finally {
+    $currentZone = (tzutil /g).Trim()
+    if ($currentZone -ne $originalZone) {
+        tzutil /s $originalZone
+        if ($LASTEXITCODE -ne 0) { throw "Emergency time-zone restore failed." }
+    }
+}
+
+$restoredZone = (tzutil /g).Trim()
+if ($restoredZone -ne $originalZone) {
+    throw "System time zone is '$restoredZone'; expected '$originalZone'."
+}
+Get-Content (Join-Path $ResultDirectory "integration-result.json")

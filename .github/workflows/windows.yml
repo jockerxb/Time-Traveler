@@ -1,0 +1,67 @@
+name: Windows build and end-to-end test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "Windows/**"
+      - ".github/workflows/windows.yml"
+  pull_request:
+    paths:
+      - "Windows/**"
+      - ".github/workflows/windows.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Run smoke tests
+        shell: pwsh
+        run: dotnet run --project Windows/TimeTraveler.SmokeTests/TimeTraveler.SmokeTests.csproj -c Release
+
+      - name: Publish test executables
+        shell: pwsh
+        run: |
+          dotnet publish Windows/TimeTraveler.Windows/TimeTraveler.Windows.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows/test-bin/app
+          dotnet publish Windows/TimeTraveler.Probe/TimeTraveler.Probe.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o Windows/test-bin/probe
+
+      - name: Test launch and guaranteed time-zone restore
+        shell: pwsh
+        run: |
+          ./Windows/scripts/integration-test.ps1 `
+            -AppExecutable "$PWD/Windows/test-bin/app/TimeTraveler.exe" `
+            -ProbeExecutable "$PWD/Windows/test-bin/probe/TimeTraveler.Probe.exe" `
+            -ResultDirectory "$PWD/Windows/test-results"
+
+      - name: Capture Chinese and English interfaces
+        shell: pwsh
+        run: |
+          $zh = Start-Process -FilePath "$PWD/Windows/test-bin/app/TimeTraveler.exe" -ArgumentList @("--capture-ui", "$PWD/Windows/test-results/windows-ui-zh.png") -Wait -PassThru
+          if ($zh.ExitCode -ne 0) { throw "Chinese UI capture failed." }
+          $en = Start-Process -FilePath "$PWD/Windows/test-bin/app/TimeTraveler.exe" -ArgumentList @("--capture-ui", "$PWD/Windows/test-results/windows-ui-en.png", "--english") -Wait -PassThru
+          if ($en.ExitCode -ne 0) { throw "English UI capture failed." }
+
+      - name: Build portable x64 and ARM64 packages
+        shell: pwsh
+        run: ./Windows/scripts/build.ps1 -OutputRoot "$PWD/Windows/artifacts"
+
+      - name: Upload Windows packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: Time-Traveler-Windows-preview
+          path: |
+            Windows/artifacts/*.zip
+            Windows/test-results/*.json
+            Windows/test-results/*.png
+          if-no-files-found: error

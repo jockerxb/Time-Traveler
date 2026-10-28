@@ -1,0 +1,94 @@
+<Window x:Class="TimeTraveler.Windows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Time Traveler" Width="760" Height="590" MinWidth="720" MinHeight="560"
+        WindowStartupLocation="CenterScreen" Background="{StaticResource PageBackground}"
+        Icon="Assets/AppIcon.ico">
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="34">
+                <Grid Margin="0,0,0,26">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Image Source="Assets/AppIcon.png" Width="68" Height="68" Stretch="UniformToFill" />
+                    <StackPanel Grid.Column="1" Margin="16,8,12,0">
+                        <TextBlock Text="Time Traveler" FontSize="28" FontWeight="SemiBold" Foreground="{StaticResource PrimaryText}" />
+                        <TextBlock x:Name="SubtitleText" Margin="0,5,0,0" FontSize="14" Foreground="{StaticResource SecondaryText}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="LanguageButton" Style="{StaticResource PillButton}" Width="48" Height="42" Padding="0" Margin="0,0,10,0" Click="LanguageButton_Click" ToolTip="切换语言">
+                            <TextBlock Text="文A" FontSize="15" />
+                        </Button>
+                        <Button x:Name="GitHubButton" Style="{StaticResource PillButton}" Height="42" Click="GitHubButton_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="↗" FontSize="18" Margin="0,-1,7,0" />
+                                <TextBlock Text="GitHub" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <Border x:Name="TimeZoneCard" Background="{StaticResource CardBackground}" BorderBrush="{StaticResource BorderSoft}"
+                        BorderThickness="1.5" CornerRadius="18" Padding="20,17" Cursor="Hand"
+                        MouseLeftButtonUp="TimeZoneCard_LeftClick" MouseRightButtonUp="TimeZoneCard_RightClick">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="42" Height="42" CornerRadius="21" Background="{StaticResource AccentSoft}">
+                            <TextBlock Text="◉" FontSize="23" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Margin="15,0,12,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="TimeZoneTitleText" FontSize="19" FontWeight="SemiBold" Foreground="{StaticResource PrimaryText}" />
+                            <TextBlock x:Name="TimeZoneDetailText" Margin="0,5,0,0" FontSize="13" FontFamily="Consolas" Foreground="{StaticResource SecondaryText}" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Text="›" FontSize="34" Foreground="{StaticResource SecondaryText}" VerticalAlignment="Center" />
+                    </Grid>
+                    <Border.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem x:Name="ClearTimeZoneMenuItem" Click="ClearTimeZoneMenuItem_Click" />
+                        </ContextMenu>
+                    </Border.ContextMenu>
+                </Border>
+
+                <TextBlock x:Name="ClickToLaunchText" Margin="0,28,0,12" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource SecondaryText}" />
+                <ItemsControl x:Name="AppsItemsControl">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><UniformGrid Columns="4" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource AppButton}" Click="AppButton_Click" Tag="{Binding Definition}" IsEnabled="{Binding IsEnabled}">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <Grid Width="78" Height="78">
+                                        <Border x:Name="FallbackTile" CornerRadius="18" Background="{Binding AccentBrush}" Visibility="{Binding FallbackVisibility}">
+                                            <TextBlock Text="{Binding Initial}" Foreground="White" FontSize="30" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <Image Source="{Binding Icon}" Width="72" Height="72" Stretch="Uniform" Visibility="{Binding IconVisibility}" />
+                                        <Border Background="#66000000" CornerRadius="18" Visibility="{Binding BusyVisibility}">
+                                            <TextBlock Text="…" Foreground="White" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Text="{Binding DisplayName}" Margin="0,9,0,0" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding InstallState}" Margin="0,3,0,0" FontSize="11" Foreground="{StaticResource SecondaryText}" HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border Margin="0,26,0,0" Background="#0D256CF4" CornerRadius="12" Padding="13,10">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="StatusIconText" Text="ⓘ" FontSize="16" Foreground="{StaticResource Accent}" Margin="0,0,8,0" />
+                        <TextBlock x:Name="StatusText" FontSize="12" Foreground="{StaticResource SecondaryText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>

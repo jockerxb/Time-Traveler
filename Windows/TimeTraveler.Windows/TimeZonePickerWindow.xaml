@@ -1,0 +1,41 @@
+<Window x:Class="TimeTraveler.Windows.TimeZonePickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="620" Height="650" WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="{StaticResource PageBackground}" ShowInTaskbar="False">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid>
+            <StackPanel>
+                <TextBlock x:Name="TitleText" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock x:Name="SubtitleText" Margin="0,4,0,0" FontSize="12" Foreground="{StaticResource SecondaryText}" />
+            </StackPanel>
+            <Button x:Name="CloseButton" HorizontalAlignment="Right" VerticalAlignment="Top" Width="34" Height="34" Content="×" FontSize="19" Click="CloseButton_Click" />
+        </Grid>
+        <TextBox x:Name="SearchBox" Grid.Row="1" Height="40" Margin="0,18,0,12" Padding="11,8" FontSize="14" TextChanged="SearchBox_TextChanged" />
+        <ListBox x:Name="ZoneList" Grid.Row="2" BorderThickness="0" Background="White" SelectionChanged="ZoneList_SelectionChanged">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="10,8" Width="520">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding Id}" Margin="0,3,0,0" FontSize="11" FontFamily="Consolas" Foreground="{StaticResource SecondaryText}" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding Offset}" FontSize="12" FontFamily="Consolas" Foreground="{StaticResource SecondaryText}" VerticalAlignment="Center" />
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock x:Name="NoResultsText" Grid.Row="2" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource SecondaryText}" />
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button x:Name="CancelButton" Content="取消" MinWidth="82" Padding="14,8" Margin="0,0,8,0" Click="CloseButton_Click" />
+            <Button x:Name="SelectButton" Content="使用此时区" Style="{StaticResource PillButton}" MinWidth="120" IsEnabled="False" Click="SelectButton_Click" />
+        </StackPanel>
+    </Grid>
+</Window>
