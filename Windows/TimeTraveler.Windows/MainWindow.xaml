@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Time Traveler" Width="760" Height="590" MinWidth="720" MinHeight="560"
         WindowStartupLocation="CenterScreen" Background="{StaticResource PageBackground}"
-        Icon="Assets/AppIcon.ico">
+        Icon="Assets/AppIcon.png">
     <Grid>
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="34">

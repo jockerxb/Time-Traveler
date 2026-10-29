@@ -204,7 +204,8 @@ public sealed class HybridLauncher
             process = Process.Start(new ProcessStartInfo(target.Value) { UseShellExecute = true });
         }
 
-        if (process is null) throw new InvalidOperationException("Windows did not start the selected application.");
+        if (process is null && target.Kind == LaunchTargetKind.Executable)
+            throw new InvalidOperationException("Windows did not start the selected application.");
 
         var appeared = target.Kind == LaunchTargetKind.Executable;
         var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(20);
