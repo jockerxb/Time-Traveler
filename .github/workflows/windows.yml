@@ -67,10 +67,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Time-Traveler-Windows-preview
-          path: |
-            Windows/artifacts/*.zip
-            Windows/test-results/*.json
-            Windows/test-results/*.png
+          path: Windows/artifacts/*.zip
+          if-no-files-found: error
+
+      - name: Upload screenshots and test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-ui-and-test-results
+          path: Windows/test-results/**
           if-no-files-found: error
 
       - name: Upload failure diagnostics
