@@ -10,6 +10,15 @@ Time Traveler is an open-source time-zone launcher for macOS. Even when your sys
 
 [Download the latest release](https://github.com/jockerxb/Time-Traveler/releases/latest) · [View source](https://github.com/jockerxb/Time-Traveler)
 
+**Windows preview:** [Download for x64 / ARM64](https://github.com/jockerxb/Time-Traveler/releases/tag/v1.4.0-preview.1) · [User guide](Windows/README_EN.md). Choose a time zone and click an app icon. Windows briefly switches its system time zone during launch, then restores it automatically. Display compatibility with the real IM clients is still being validated.
+
+<details>
+<summary>View the Windows interface in English</summary>
+
+![Time Traveler Windows interface in English](Assets/App-Screenshot-Windows-en.png)
+
+</details>
+
 ## Use Case
 
 When you change your Mac's system time zone but still want Feishu, WeChat, and other IM apps to use their usual local time zone, Time Traveler keeps message and calendar times from shifting with the system.

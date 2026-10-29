@@ -10,6 +10,15 @@ Time Traveler 是一款开源的 macOS 时区启动器。即使系统切换到�
 
 [下载最新版本](https://github.com/jockerxb/Time-Traveler/releases/latest) · [查看源代码](https://github.com/jockerxb/Time-Traveler)
 
+**Windows 预览版：** [下载 x64 / ARM64](https://github.com/jockerxb/Time-Traveler/releases/tag/v1.4.0-preview.1) · [使用说明](Windows/README.md)。选择时区、点击图标即可启动；启动期间会短暂切换 Windows 系统时区，然后自动恢复。真实 IM 客户端的显示兼容性仍在验收中。
+
+<details>
+<summary>查看 Windows 中文界面</summary>
+
+![Time Traveler Windows 中文界面](Assets/App-Screenshot-Windows-zh.png)
+
+</details>
+
 ## 应用场景
 
 当你修改 Mac 系统时区后，仍希望飞书、微信等 IM 软件保留其常用所在地时区，避免消息和日历时间随系统一起变化。
