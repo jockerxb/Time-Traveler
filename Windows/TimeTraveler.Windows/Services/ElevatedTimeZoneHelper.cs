@@ -29,6 +29,7 @@ public static class ElevatedTimeZoneHelper
             TargetTimeZoneId = job.TargetTimeZoneId
         };
 
+        var switchAttempted = false;
         try
         {
             var actualOriginal = TimeZoneCommand.GetCurrent();
@@ -37,6 +38,7 @@ public static class ElevatedTimeZoneHelper
                 throw new InvalidOperationException($"The system time zone changed before launch. Expected '{job.OriginalTimeZoneId}', found '{actualOriginal}'.");
             }
 
+            switchAttempted = true;
             var switchResult = TimeZoneCommand.Set(job.TargetTimeZoneId);
             if (!switchResult.Success) throw new InvalidOperationException(string.IsNullOrWhiteSpace(switchResult.Error) ? "Could not change the Windows time zone." : switchResult.Error.Trim());
             result.Switched = true;
@@ -56,7 +58,7 @@ public static class ElevatedTimeZoneHelper
         }
         finally
         {
-            if (result.Switched)
+            if (switchAttempted)
             {
                 var restoreResult = TimeZoneCommand.Set(job.OriginalTimeZoneId);
                 result.Restored = restoreResult.Success;

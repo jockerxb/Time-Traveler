@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using TimeTraveler.Windows.Models;
 using TimeTraveler.Windows.Services;
 
@@ -21,6 +21,8 @@ public partial class MainWindow : Window
     private IReadOnlyList<TimeZoneItem> _zones = [];
     private TimeZoneItem? _selectedZone;
     private AppDefinition? _pendingApp;
+    private bool _busy;
+    private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(15) };
 
     public MainWindow(AppLanguage? languageOverride = null, bool captureMode = false)
     {
@@ -33,6 +35,9 @@ public partial class MainWindow : Window
         _selectedZone = _zones.FirstOrDefault(zone => zone.Id == _settings.SelectedTimeZoneId);
         AppsItemsControl.ItemsSource = _tiles;
         RefreshAll(captureMode);
+        _clock.Tick += (_, _) => UpdateTimeZoneCard();
+        _clock.Start();
+        Closed += (_, _) => _clock.Stop();
     }
 
     private void RefreshAll(bool captureMode = false)
@@ -46,7 +51,7 @@ public partial class MainWindow : Window
         ClearTimeZoneMenuItem.IsEnabled = _selectedZone is not null;
         UpdateTimeZoneCard();
         RefreshAppTiles(captureMode);
-        SetStatus(_text.InitialHint, false);
+        SetStatus(_text.WindowsHint, false);
     }
 
     private void RefreshAppTiles(bool captureMode = false)
@@ -115,8 +120,13 @@ public partial class MainWindow : Window
 
     private void OpenPicker()
     {
+        if (_busy) return;
         var picker = new TimeZonePickerWindow(_zones, _selectedZone, _settings.Language) { Owner = this };
-        if (picker.ShowDialog() != true || picker.SelectedTimeZone is null) return;
+        if (picker.ShowDialog() != true || picker.SelectedTimeZone is null)
+        {
+            _pendingApp = null;
+            return;
+        }
         _selectedZone = picker.SelectedTimeZone;
         _settings.SelectedTimeZoneId = _selectedZone.Id;
         SaveSettings();
@@ -137,6 +147,7 @@ public partial class MainWindow : Window
 
     private async Task LaunchAppAsync(AppDefinition app)
     {
+        if (_busy) return;
         var target = _discovery.Find(app);
         var name = app.DisplayName(_settings.Language);
         if (target is null)
@@ -150,21 +161,20 @@ public partial class MainWindow : Window
             OpenPicker();
             return;
         }
-        if (_launcher.IsRunning(app))
-        {
-            var answer = MessageBox.Show(this, _text.RestartBody, _text.RestartTitle(name), MessageBoxButton.OKCancel, MessageBoxImage.Warning);
-            if (answer != MessageBoxResult.OK) return;
-            if (!await _launcher.RequestQuitAsync(app, TimeSpan.FromSeconds(15)))
-            {
-                MessageBox.Show(this, _text.AppDidNotQuit(name), _text.LaunchFailed, MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-        }
-
         SetBusy(app.Id, true);
-        SetStatus(_text.Launching(name), false);
         try
         {
+            if (_launcher.IsRunning(app))
+            {
+                var answer = MessageBox.Show(this, _text.RestartBody, _text.RestartTitle(name), MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+                if (answer != MessageBoxResult.OK) return;
+                if (!await _launcher.RequestQuitAsync(app, TimeSpan.FromSeconds(15)))
+                {
+                    MessageBox.Show(this, _text.AppDidNotQuit(name), _text.LaunchFailed, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+            }
+            SetStatus(_text.Launching(name), false);
             await _launcher.LaunchAsync(app, target, _selectedZone);
             SetStatus(_text.LaunchSucceeded(name), false);
         }
@@ -188,6 +198,9 @@ public partial class MainWindow : Window
 
     private void SetBusy(string appId, bool busy)
     {
+        _busy = busy;
+        LanguageButton.IsEnabled = !busy;
+        TimeZoneCard.IsEnabled = !busy;
         foreach (var tile in _tiles) tile.SetBusy(tile.Definition.Id == appId && busy, busy);
     }
 

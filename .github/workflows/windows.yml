@@ -30,11 +30,17 @@ jobs:
         shell: pwsh
         run: dotnet run --project Windows/TimeTraveler.SmokeTests/TimeTraveler.SmokeTests.csproj -c Release
 
+      - name: Build portable x64 and ARM64 packages
+        shell: pwsh
+        run: ./Windows/scripts/build.ps1 -OutputRoot "$PWD/Windows/artifacts"
+
+      - name: Extract the x64 delivery package to a path with spaces
+        shell: pwsh
+        run: Expand-Archive Windows/artifacts/Time-Traveler-Windows-x64-portable.zip -DestinationPath 'Windows/package acceptance/x64'
+
       - name: Publish test executables
         shell: pwsh
         run: |
-          dotnet publish Windows/TimeTraveler.Windows/TimeTraveler.Windows.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows/test-bin/app
-          dotnet publish Windows/TimeTraveler.Helper/TimeTraveler.Helper.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o Windows/test-bin/helper
           dotnet publish Windows/TimeTraveler.Probe/TimeTraveler.Probe.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o Windows/test-bin/probe
           dotnet publish Windows/TimeTraveler.IntegrationTests/TimeTraveler.IntegrationTests.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o Windows/test-bin/integration
 
@@ -45,21 +51,17 @@ jobs:
           ./Windows/scripts/integration-test.ps1 `
             -AppExecutable "$PWD/Windows/test-bin/integration/TimeTraveler.IntegrationTests.exe" `
             -ProbeExecutable "$PWD/Windows/test-bin/probe/TimeTraveler.Probe.exe" `
-            -HelperExecutable "$PWD/Windows/test-bin/helper/TimeTraveler.Helper.exe" `
+            -HelperExecutable "$PWD/Windows/package acceptance/x64/TimeTraveler.Helper.exe" `
             -ResultDirectory "$PWD/Windows/test-results"
 
       - name: Capture Chinese and English interfaces
         timeout-minutes: 2
         shell: pwsh
         run: |
-          $zh = Start-Process -FilePath "$PWD/Windows/test-bin/app/TimeTraveler.exe" -ArgumentList @("--capture-ui", "$PWD/Windows/test-results/windows-ui-zh.png") -Wait -PassThru
+          $zh = Start-Process -FilePath "$PWD/Windows/package acceptance/x64/TimeTraveler.exe" -ArgumentList @("--capture-ui", "$PWD/Windows/test-results/windows-ui-zh.png") -Wait -PassThru
           if ($zh.ExitCode -ne 0) { throw "Chinese UI capture failed." }
-          $en = Start-Process -FilePath "$PWD/Windows/test-bin/app/TimeTraveler.exe" -ArgumentList @("--capture-ui", "$PWD/Windows/test-results/windows-ui-en.png", "--english") -Wait -PassThru
+          $en = Start-Process -FilePath "$PWD/Windows/package acceptance/x64/TimeTraveler.exe" -ArgumentList @("--capture-ui", "$PWD/Windows/test-results/windows-ui-en.png", "--english") -Wait -PassThru
           if ($en.ExitCode -ne 0) { throw "English UI capture failed." }
-
-      - name: Build portable x64 and ARM64 packages
-        shell: pwsh
-        run: ./Windows/scripts/build.ps1 -OutputRoot "$PWD/Windows/artifacts"
 
       - name: Upload Windows packages
         uses: actions/upload-artifact@v4

@@ -8,3 +8,5 @@ Windows/**/bin/
 Windows/**/obj/
 Windows/artifacts/
 Windows/test-results/
+Windows/test-bin/
+Windows/package acceptance/

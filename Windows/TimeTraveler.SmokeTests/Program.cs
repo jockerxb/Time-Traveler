@@ -21,6 +21,18 @@ Check(china?.Name(AppLanguage.Chinese).Contains("北京") == true, "Chinese frie
 Check(china?.Name(AppLanguage.English).Contains("Beijing") == true, "English friendly name is missing.");
 Check(zones.Any(zone => zone.Matches("UTC+08", AppLanguage.English)), "UTC offset search failed.");
 Check(zones.Any(zone => zone.Matches("北京", AppLanguage.Chinese)), "Chinese city search failed.");
+Check(china?.Matches("UTC+8", AppLanguage.English) == true, "Unpadded UTC offset search failed.");
+
+var discovery = new AppDiscoveryService();
+var fixtureDirectory = Path.Combine(Path.GetTempPath(), "Time Traveler discovery", Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(fixtureDirectory);
+var fixturePath = Path.Combine(fixtureDirectory, "fixture.exe");
+File.WriteAllText(fixturePath, "discovery fixture; not executed");
+var fixture = new AppDefinition("fixture", "测试", "Fixture", [], [], [fixturePath], [], [], "#256CF4", 0);
+Check(discovery.Find(fixture)?.Value == fixturePath, "App discovery failed for a custom installation path with spaces.");
+File.Delete(fixturePath);
+Check(discovery.Find(fixture) is null, "Missing app should not be reported as installed.");
+Directory.Delete(fixtureDirectory);
 
 var settingsPath = Path.Combine(Path.GetTempPath(), "TimeTraveler-SmokeTests", Guid.NewGuid().ToString("N"), "settings.json");
 var settingsService = new SettingsService(settingsPath);

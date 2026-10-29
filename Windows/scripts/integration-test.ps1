@@ -17,7 +17,13 @@ if ([string]::IsNullOrWhiteSpace($originalZone)) { throw "Could not read the ori
 Set-Content -Path (Join-Path $ResultDirectory "original-time-zone.txt") -Value $originalZone
 
 try {
-    $process = Start-Process -FilePath $AppExecutable -ArgumentList @($ProbeExecutable, $HelperExecutable, $ResultDirectory) -Wait -PassThru -NoNewWindow
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new($AppExecutable)
+    $startInfo.UseShellExecute = $false
+    $startInfo.ArgumentList.Add($ProbeExecutable)
+    $startInfo.ArgumentList.Add($HelperExecutable)
+    $startInfo.ArgumentList.Add($ResultDirectory)
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+    if (-not $process.WaitForExit(180000)) { throw "Integration harness exceeded the three-minute limit." }
     if ($process.ExitCode -ne 0) {
         $summary = Join-Path $ResultDirectory "integration-result.json"
         if (Test-Path $summary) { Get-Content $summary }

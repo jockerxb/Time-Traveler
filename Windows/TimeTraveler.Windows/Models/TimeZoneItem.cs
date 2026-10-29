@@ -62,7 +62,20 @@ public sealed class TimeZoneItem
                || IanaId.Contains(value, StringComparison.OrdinalIgnoreCase)
                || Name(language).Contains(value, StringComparison.CurrentCultureIgnoreCase)
                || Zone.DisplayName.Contains(value, StringComparison.CurrentCultureIgnoreCase)
-               || OffsetText(DateTimeOffset.Now).Replace(":", "").Contains(value.Replace(":", ""), StringComparison.OrdinalIgnoreCase);
+               || NormalizedOffsetMatches(value);
+    }
+
+    private bool NormalizedOffsetMatches(string query)
+    {
+        if (!query.StartsWith("UTC", StringComparison.OrdinalIgnoreCase)) return false;
+        var text = query[3..].Trim();
+        if (text.Length < 2 || (text[0] != '+' && text[0] != '-')) return false;
+        var parts = text[1..].Split(':');
+        if (!int.TryParse(parts[0], out var hours) || hours > 14) return false;
+        var minutes = 0;
+        if (parts.Length > 2 || (parts.Length == 2 && !int.TryParse(parts[1], out minutes)) || minutes is < 0 or > 59) return false;
+        var offset = TimeSpan.FromMinutes((hours * 60 + minutes) * (text[0] == '-' ? -1 : 1));
+        return Zone.GetUtcOffset(DateTimeOffset.Now) == offset;
     }
 
     public static IReadOnlyList<TimeZoneItem> Load() =>
