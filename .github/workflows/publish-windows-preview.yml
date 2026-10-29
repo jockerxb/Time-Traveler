@@ -1,0 +1,63 @@
+name: Publish tested Windows preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Windows build run containing the delivery ZIPs
+        required: true
+        type: string
+      tag:
+        description: Existing draft prerelease tag pointing to the tested commit
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TESTED_RUN: ${{ inputs.run_id }}
+      RELEASE_TAG: ${{ inputs.tag }}
+    steps:
+      - name: Require a successful build and matching draft preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TESTED_RUN" =~ ^[0-9]+$ ]]
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-preview\.[0-9]+$ ]]
+          gh api "repos/$GH_REPO/actions/runs/$TESTED_RUN" > run.json
+          jq -e '.status == "completed" and .conclusion == "success" and .path == ".github/workflows/windows.yml"' run.json
+          tested_sha=$(jq -r '.head_sha' run.json)
+          gh release view "$RELEASE_TAG" --json isDraft,isPrerelease,targetCommitish > release.json
+          jq -e --arg sha "$tested_sha" '.isDraft and .isPrerelease and .targetCommitish == $sha' release.json
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Time-Traveler-Windows-preview
+          path: packages
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run_id }}
+
+      - name: Upload complete packages and checksums
+        shell: bash
+        working-directory: packages
+        run: |
+          set -euo pipefail
+          unzip -t Time-Traveler-Windows-x64-portable.zip
+          unzip -t Time-Traveler-Windows-arm64-portable.zip
+          sha256sum Time-Traveler-Windows-*-portable.zip > SHA256SUMS.txt
+          gh release upload "$RELEASE_TAG" Time-Traveler-Windows-x64-portable.zip Time-Traveler-Windows-arm64-portable.zip SHA256SUMS.txt --clobber
+
+      - name: Publish without changing the stable release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false
+          gh release view "$RELEASE_TAG" --json url,isDraft,isPrerelease,assets
