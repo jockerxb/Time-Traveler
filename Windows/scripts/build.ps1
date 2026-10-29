@@ -30,6 +30,7 @@ foreach ($runtime in @("win-x64", "win-arm64")) {
     Copy-Item (Join-Path $repoRoot "Windows/README.md") (Join-Path $publish "README.md") -Force
     Copy-Item (Join-Path $repoRoot "Windows/README_EN.md") (Join-Path $publish "README_EN.md") -Force
     Copy-Item (Join-Path $repoRoot "LICENSE") (Join-Path $publish "LICENSE") -Force
+    Copy-Item (Join-Path $repoRoot "Windows/THIRD_PARTY_NOTICES.md") (Join-Path $publish "THIRD_PARTY_NOTICES.md") -Force
 
     $zip = Join-Path $OutputRoot "Time-Traveler-Windows-$($runtime.Replace('win-', ''))-portable.zip"
     if (Test-Path $zip) { Remove-Item $zip -Force }

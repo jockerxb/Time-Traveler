@@ -77,10 +77,11 @@ public static class UiCaptureCommand
     private static void Capture(Window window, string path)
     {
         window.UpdateLayout();
-        var width = Math.Max(1, (int)Math.Ceiling(window.ActualWidth));
-        var height = Math.Max(1, (int)Math.Ceiling(window.ActualHeight));
+        var content = (FrameworkElement)window.Content;
+        var width = Math.Max(1, (int)Math.Ceiling(content.ActualWidth));
+        var height = Math.Max(1, (int)Math.Ceiling(content.ActualHeight));
         var bitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(window);
+        bitmap.Render(content);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var stream = File.Create(path);

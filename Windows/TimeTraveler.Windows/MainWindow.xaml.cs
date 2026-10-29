@@ -60,7 +60,7 @@ public partial class MainWindow : Window
         foreach (var app in AppCatalog.All)
         {
             var target = captureMode ? null : _discovery.Find(app);
-            _tiles.Add(new AppTile(app, target, _settings.Language, _text, IconService.Load(target), captureMode));
+            _tiles.Add(new AppTile(app, target, _settings.Language, _text, IconService.Load(target) ?? IconService.LoadBundled(app.Id), captureMode));
         }
     }
 

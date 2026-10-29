@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Nullable>enable</Nullable>
@@ -9,6 +9,8 @@
     <Version>1.4.0-preview.1</Version>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\TimeTraveler.Windows\TimeTraveler.Windows.csproj" />
+    <Compile Include="..\TimeTraveler.Windows\Models\TimeZoneLaunchJob.cs" Link="Models\TimeZoneLaunchJob.cs" />
+    <Compile Include="..\TimeTraveler.Windows\Services\TimeZoneCommand.cs" Link="Services\TimeZoneCommand.cs" />
+    <Compile Include="..\TimeTraveler.Windows\Services\ElevatedTimeZoneHelper.cs" Link="Services\ElevatedTimeZoneHelper.cs" />
   </ItemGroup>
 </Project>

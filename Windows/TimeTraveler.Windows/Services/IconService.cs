@@ -12,6 +12,13 @@ public static class IconService
     private const uint ShgfiIcon = 0x000000100;
     private const uint ShgfiLargeIcon = 0x000000000;
 
+    public static ImageSource LoadBundled(string appId)
+    {
+        var icon = new BitmapImage(new Uri($"pack://application:,,,/TimeTraveler;component/Assets/AppIcons/{appId}.png"));
+        icon.Freeze();
+        return icon;
+    }
+
     public static ImageSource? Load(LaunchTarget? target)
     {
         if (target is null || target.Kind == LaunchTargetKind.Uri || !File.Exists(target.Value)) return null;
